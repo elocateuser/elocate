@@ -1908,23 +1908,24 @@ local Library do
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border
                 }):AddToTheme({Color = "Border"})
 
-                Items["Value"] = Instances:Create("TextLabel", {
+                Items["Value"] = Instances:Create("TextBox", {
                     Parent = Items["RealSlider"].Instance,
                     Name = "\0",
                     FontFace = Library.Font,
                     TextColor3 = FromRGB(235, 235, 235),
-                    BorderColor3 = FromRGB(0, 0, 0),
-                    Text = "50%",
+                    BorderColor3 = FromRGB(42, 49, 45),
+                    Text = "[ 50 ]",
                     AnchorPoint = Vector2New(0.5, 0.5),
-                    Size = UDim2New(0, 0, 1, 0),
-                    BackgroundTransparency = 1,
+                    Size = UDim2New(0, 0, 1, 4),
+                    BackgroundTransparency = 0,
                     Position = UDim2New(0.5, 0, 0.5, 0),
-                    BorderSizePixel = 0,
+                    BorderSizePixel = 2,
                     AutomaticSize = Enum.AutomaticSize.X,
-                    TextSize = 11,
-                    ZIndex = 3,
-                    BackgroundColor3 = FromRGB(255, 255, 255)
-                })  Items["Value"]:AddToTheme({TextColor3 = "Text"})
+                    TextSize = 10,
+                    ZIndex = 10,
+                    ClearTextOnFocus = false,
+                    BackgroundColor3 = FromRGB(20, 24, 21)
+                })  Items["Value"]:AddToTheme({TextColor3 = "Text", BackgroundColor3 = "Background", BorderColor3 = "Border"})
 
                 Items["Value"]:TextBorder()
             end
@@ -1943,7 +1944,7 @@ local Library do
                 Library.Flags[Slider.Flag] = Slider.Value
 
                 Items["Accent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New((Slider.Value - Data.Min) / (Data.Max - Data.Min), 0, 1, 0)})
-                Items["Value"].Instance.Text = StringFormat("%s%s", tostring(Slider.Value), Data.Suffix)
+                Items["Value"].Instance.Text = StringFormat("[ %s%s ]", tostring(Slider.Value), Data.Suffix)
 
                 if Data.Callback then 
                     Library:SafeCall(Data.Callback, Slider.Value)
@@ -2013,6 +2014,22 @@ local Library do
             if Data.Default then 
                 Slider:Set(Data.Default)
             end
+
+            -- Manual value input
+            Items["Value"]:Connect("FocusLost", function(enterPressed)
+                if enterPressed then
+                    local text = Items["Value"].Instance.Text
+                    -- Extract number from [ X ] format
+                    local num = text:match("%d+%.?%d*")
+                    if num then
+                        Slider:Set(tonumber(num))
+                    else
+                        Slider:Set(Slider.Value) -- Reset to current value
+                    end
+                else
+                    Slider:Set(Slider.Value) -- Reset to current value
+                end
+            end)
 
             Library.SetFlags[Slider.Flag] = function(Value)
                 Slider:Set(Value)
