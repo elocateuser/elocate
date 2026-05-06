@@ -348,9 +348,8 @@ local Library do
                 [Property] = Visibility and OldTransparency or 1
             }, true)
 
-            Library:Connect(NewTween.Tween.Completed, function()
+            NewTween.Tween.Completed:Once(function()
                 if not Visibility then 
-                    task.wait()
                     Item[Property] = OldTransparency
                 end
             end)
@@ -1214,30 +1213,7 @@ local Library do
                     Items["Text"]:Tween(nil, {Position = UDim2New(0, 8, 0.5, 0)})
                 end
 
-                local AllInstances = Items["Page"].Instance:GetDescendants()
-                TableInsert(AllInstances, Items["Page"].Instance)
-                
-                local NewTween 
-
-                for Index, Value in AllInstances do 
-                    local TransparencyProperty = Tween:GetProperty(Value)
-
-                    if not TransparencyProperty then 
-                        continue
-                    end
-
-                    if type(TransparencyProperty) == "table" then 
-                        for _, Property in TransparencyProperty do 
-                            NewTween = Tween:FadeItem(Value, Property, Bool, Data.Window.FadeTime)
-                        end
-                    else
-                        NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, Data.Window.FadeTime)
-                    end
-                end
-
-                Library:Connect(NewTween.Tween.Completed, function()
-                    Debounce = false
-                end)
+                task.defer(function() Debounce = false end)
             end
 
             Items["Inactive"]:Connect("MouseButton1Down", function()
@@ -1451,30 +1427,7 @@ local Library do
                     Items["Text"]:Tween(nil, {Position = UDim2New(0.5, -5, 0.5, 0)})
                 end
 
-                local AllInstances = Items["Page"].Instance:GetDescendants()
-                TableInsert(AllInstances, Items["Page"].Instance)
-
-                local NewTween 
-
-                for Index, Value in AllInstances do 
-                    local TransparencyProperty = Tween:GetProperty(Value)
-
-                    if not TransparencyProperty then 
-                        continue
-                    end
-
-                    if type(TransparencyProperty) == "table" then 
-                        for _, Property in TransparencyProperty do 
-                            NewTween = Tween:FadeItem(Value, Property, Bool, Data.Window.FadeTime)
-                        end
-                    else
-                        NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, Data.Window.FadeTime)
-                    end
-                end
-
-                Library:Connect(NewTween.Tween.Completed, function()
-                    Debounce = false
-                end)
+                task.defer(function() Debounce = false end)
             end
 
             Items["Inactive"]:Connect("MouseButton1Down", function()
@@ -2250,61 +2203,43 @@ local Library do
                     Items["OptionHolder"].Instance.Parent = Library.Holder.Instance
                     Items["Icon"]:Tween(nil, {Rotation = -90})
                     
-                    RenderStepped = RunService.RenderStepped:Connect(function()
+                    RenderStepped = Library:Connect(RunService.RenderStepped, function()
                         Items["OptionHolder"].Instance.Position = UDim2New(0, Items["RealDropdown"].Instance.AbsolutePosition.X, 0, Items["RealDropdown"].Instance.AbsolutePosition.Y + Items["RealDropdown"].Instance.AbsoluteSize.Y + 5)
                         Items["OptionHolder"].Instance.Size = UDim2New(0, Items["RealDropdown"].Instance.AbsoluteSize.X, 0, 0)
                     end)
 
-                    if not Debounce then 
-                        for Index, Value in Library.OpenFrames do 
-                            if Value ~= Dropdown then 
-                                Value:SetOpen(false)
-                            end
+                    for Index, Value in Library.OpenFrames do 
+                        if Value ~= Dropdown then 
+                            Value:SetOpen(false)
                         end
-
-                        Library.OpenFrames[Dropdown] = Dropdown 
                     end
+
+                    Library.OpenFrames[Dropdown] = Dropdown 
                 else
-                    if not Debounce then 
-                        if Library.OpenFrames[Dropdown] then 
-                            Library.OpenFrames[Dropdown] = nil
-                        end
+                    if Library.OpenFrames[Dropdown] then 
+                        Library.OpenFrames[Dropdown] = nil
                     end
 
                     if RenderStepped then 
-                        RenderStepped:Disconnect()
+                        Library:Disconnect(RenderStepped.Name)
                         RenderStepped = nil
                     end
 
                     Items["Icon"]:Tween(nil, {Rotation = 0})
                 end
 
-                local Descendants = Items["OptionHolder"].Instance:GetDescendants()
-                TableInsert(Descendants, Items["OptionHolder"].Instance)
-
                 local NewTween
 
-                for Index, Value in Descendants do 
-                    local TransparencyProperty = Tween:GetProperty(Value)
-
-                    if not TransparencyProperty then
-                        continue 
-                    end
-
-                    if type(TransparencyProperty) == "table" then 
-                        for _, Property in TransparencyProperty do 
-                            NewTween = Tween:FadeItem(Value, Property, Bool, Library.FadeSpeed)
-                        end
-                    else
-                        NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, Library.FadeSpeed)
-                    end
-                end
+                NewTween = Tween:FadeItem(Items["OptionHolder"].Instance, "BackgroundTransparency", not Dropdown.IsOpen, Library.FadeSpeed)
                 
-                NewTween.Tween.Completed:Connect(function()
-                    Debounce = false 
+                NewTween.Tween.Completed:Once(function()
                     Items["OptionHolder"].Instance.Visible = Dropdown.IsOpen
-                    task.wait(0.2)
-                    Items["OptionHolder"].Instance.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    task.delay(0.2, function()
+                        Items["OptionHolder"].Instance.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    end)
+                    task.delay(Library.FadeSpeed, function()
+                        Debounce = false
+                    end)
                 end)
             end
 
@@ -3413,28 +3348,24 @@ local Library do
                     Items["ColorpickerWindow"].Instance.Visible = true
                     Items["ColorpickerWindow"].Instance.Parent = Library.Holder.Instance
                     
-                    RenderStepped = RunService.RenderStepped:Connect(function()
+                    RenderStepped = Library:Connect(RunService.RenderStepped, function()
                         Items["ColorpickerWindow"].Instance.Position = UDim2New(0, Items["ColorpickerButton"].Instance.AbsolutePosition.X, 0, Items["ColorpickerButton"].Instance.AbsolutePosition.Y + Items["ColorpickerButton"].Instance.AbsoluteSize.Y + 5)
                     end)
 
-                    if not Data.Debounce then
-                        for Index, Value in Library.OpenFrames do 
-                            if Value ~= Colorpicker and Value ~= AnimationsDropdownItems then 
-                                Value:SetOpen(false)
-                            end
+                    for Index, Value in Library.OpenFrames do 
+                        if Value ~= Colorpicker and Value ~= AnimationsDropdownItems then 
+                            Value:SetOpen(false)
                         end
-
-                        Library.OpenFrames[Colorpicker] = Colorpicker 
                     end
+
+                    Library.OpenFrames[Colorpicker] = Colorpicker 
                 else
-                    if not Data.Debounce then 
-                        if Library.OpenFrames[Colorpicker] then 
-                            Library.OpenFrames[Colorpicker] = nil
-                        end
+                    if Library.OpenFrames[Colorpicker] then 
+                        Library.OpenFrames[Colorpicker] = nil
                     end
 
                     if RenderStepped then 
-                        RenderStepped:Disconnect()
+                        Library:Disconnect(RenderStepped.Name)
                         RenderStepped = nil
                     end
                 end
@@ -3460,11 +3391,12 @@ local Library do
                     end
                 end
                 
-                NewTween.Tween.Completed:Connect(function()
+                NewTween.Tween.Completed:Once(function()
                     Debounce = false 
                     Items["ColorpickerWindow"].Instance.Visible = Colorpicker.IsOpen
-                    task.wait(0.2)
-                    Items["ColorpickerWindow"].Instance.Parent = not Colorpicker.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    task.delay(0.2, function()
+                        Items["ColorpickerWindow"].Instance.Parent = not Colorpicker.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    end)
                 end)
             end
 
@@ -3501,10 +3433,8 @@ local Library do
                     local Blue = MathFloor(Colorpicker.Color.B * 255)
                     local RedGreenBlue = tostring(Red) .. ", " .. tostring(Green) .. ", " .. tostring(Blue)
 
-                    local FloorHue, FloorSat, FloorVal = nil, nil, nil
-
                     Items["RGBColor"].Instance.Text = "RGB: "..RedGreenBlue
-                    Items["HSVColor"].Instance.Text = `HSV: %1, %1, %1`
+                    Items["HSVColor"].Instance.Text = string.format("HSV: %.0f, %.0f%%, %.0f%%", Hue*360, Saturation*100, Value*100)
                     Items["HEXColor"].Instance.Text = "HEX: " .. "#" .. Colorpicker.HexValue
                 end
 
@@ -3930,28 +3860,24 @@ local Library do
                     Items["KeybindWindow"].Instance.Visible = true
                     Items["KeybindWindow"].Instance.Parent = Library.Holder.Instance
                     
-                    RenderStepped = RunService.RenderStepped:Connect(function()
+                    RenderStepped = Library:Connect(RunService.RenderStepped, function()
                         Items["KeybindWindow"].Instance.Position = UDim2New(0, Items["KeyButton"].Instance.AbsolutePosition.X, 0, Items["KeyButton"].Instance.AbsolutePosition.Y + Items["KeyButton"].Instance.AbsoluteSize.Y + 5)
                     end)
 
-                    if not Debounce then 
-                        for Index, Value in Library.OpenFrames do 
-                            if Value ~= Keybind then 
-                                Value:SetOpen(false)
-                            end
+                    for Index, Value in Library.OpenFrames do 
+                        if Value ~= Keybind then 
+                            Value:SetOpen(false)
                         end
-
-                        Library.OpenFrames[Keybind] = Keybind 
                     end
+
+                    Library.OpenFrames[Keybind] = Keybind 
                 else
-                    if not Debounce then 
-                        if Library.OpenFrames[Keybind] then 
-                            Library.OpenFrames[Keybind] = nil
-                        end
+                    if Library.OpenFrames[Keybind] then 
+                        Library.OpenFrames[Keybind] = nil
                     end
 
                     if RenderStepped then 
-                        RenderStepped:Disconnect()
+                        Library:Disconnect(RenderStepped.Name)
                         RenderStepped = nil
                     end
                 end
@@ -3977,11 +3903,12 @@ local Library do
                     end
                 end
                 
-                NewTween.Tween.Completed:Connect(function()
+                NewTween.Tween.Completed:Once(function()
                     Debounce = false 
                     Items["KeybindWindow"].Instance.Visible = Keybind.IsOpen
-                    task.wait(0.2)
-                    Items["KeybindWindow"].Instance.Parent = not Keybind.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    task.delay(0.2, function()
+                        Items["KeybindWindow"].Instance.Parent = not Keybind.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    end)
                 end)
             end
 
@@ -4604,17 +4531,14 @@ local Library do
                 Items["Listbox"]:Tween(nil, {BackgroundColor3 = Library.Theme["Element"]})
             end)
 
-            local SearchStepped
+            local SearchConn
 
             Items["Input"]:Connect("Focused", function()
-                SearchStepped = RunService.RenderStepped:Connect(function()
+                SearchConn = Items["Input"].Instance:GetPropertyChangedSignal("Text"):Connect(function()
+                    local text = StringLower(Items["Input"].Instance.Text)
                     for Index, Value in Dropdown.Options do
-                        if Items["Input"].Instance.Text ~= "" then
-                            if StringFind(StringLower(Value.Name), StringLower(Items["Input"].Instance.Text)) then
-                                Value.Button.Instance.Visible = true
-                            else
-                                Value.Button.Instance.Visible = false
-                            end
+                        if text ~= "" then
+                            Value.Button.Instance.Visible = StringFind(StringLower(Value.Name), text) ~= nil
                         else
                             Value.Button.Instance.Visible = true
                         end
@@ -4623,9 +4547,9 @@ local Library do
             end)
 
             Items["Input"]:Connect("FocusLost", function()
-                if SearchStepped then
-                    SearchStepped:Disconnect()
-                    SearchStepped = nil
+                if SearchConn then
+                    SearchConn:Disconnect()
+                    SearchConn = nil
                 end
             end)
 
@@ -5895,28 +5819,7 @@ local Library do
                 Items["Window"].Instance.Visible = true 
             end
 
-            local Descendants = Items["Window"].Instance:GetDescendants()
-            TableInsert(Descendants, Items["Window"].Instance)
-
-            local NewTween
-
-            for Index, Value in Descendants do 
-                local TransparencyProperty = Tween:GetProperty(Value)
-
-                if not TransparencyProperty then
-                    continue 
-                end
-
-                if type(TransparencyProperty) == "table" then 
-                    for _, Property in TransparencyProperty do 
-                        NewTween = Tween:FadeItem(Value, Property, Bool, Library.FadeSpeed)
-                    end
-                else
-                    NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, Library.FadeSpeed)
-                end
-            end
-            
-            NewTween.Tween.Completed:Connect(function()
+            task.delay(Library.FadeSpeed, function()
                 Debounce = false 
                 Items["Window"].Instance.Visible = Window.IsOpen
             end)
@@ -5928,7 +5831,7 @@ local Library do
             end
         end)
 
-        local SearchStepped
+        local SearchConn
 
         Items["Input"]:Connect("Focused", function()
             local PageSearchData = Library.SearchItems[Library.CurrentPage]
@@ -5937,23 +5840,15 @@ local Library do
                 return 
             end
 
-            SearchStepped = RunService.RenderStepped:Connect(function()
+            SearchConn = Items["Input"].Instance:GetPropertyChangedSignal("Text"):Connect(function()
+                local text = StringLower(Items["Input"].Instance.Text)
                 for Index, Value in PageSearchData do 
                     local Name = Value.Name
                     local Element = Value.Element
 
-                    if StringFind(StringLower(Name), StringLower(Items["Input"].Instance.Text)) then
-                        if Items["Input"].Instance.Text ~= "" then 
-                            Element.Instance.Visible  = true 
-                            Element:Tween(TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Window:GetOldSize(Element)})
-                        else
-                            Element.Instance.Visible  = true 
-                            Element:Tween(TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Window:GetOldSize(Element)})
-                        end
+                    if StringFind(StringLower(Name), text) then
+                        Element.Instance.Visible = true
                     else
-                        Window:AddToOldSizes(Element, Element.Instance.Size)
-                        Element:Tween(TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2New(Window:GetOldSize(Element).X.Scale, Window:GetOldSize(Element).X.Offset, 0, 0)})
-                        task.wait(0.1)
                         Element.Instance.Visible = false
                     end
                 end
@@ -5961,9 +5856,16 @@ local Library do
         end)
 
         Items["Input"]:Connect("FocusLost", function()
-            if SearchStepped then 
-                SearchStepped:Disconnect()
-                SearchStepped = nil
+            if SearchConn then 
+                SearchConn:Disconnect()
+                SearchConn = nil
+            end
+            -- Show all when search loses focus
+            local PageSearchData = Library.SearchItems[Library.CurrentPage]
+            if PageSearchData then
+                for Index, Value in PageSearchData do 
+                    Value.Element.Instance.Visible = true
+                end
             end
         end)
 
