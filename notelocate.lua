@@ -1,4 +1,4 @@
-local UILIB_URL  = "https://raw.githubusercontent.com/elocateuser/elocate/refs/heads/main/notelocate.lua"
+local UILIB_URL  = "https://raw.githubusercontent.com/elocateuser/elocate/refs/heads/main/uiui"
 local VERIFY_URL = "https://key-management-worker.trackdown.workers.dev/api/validate"
 local KEY_URL    = "https://key-management-worker.trackdown.workers.dev/"
 
