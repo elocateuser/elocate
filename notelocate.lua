@@ -118,16 +118,36 @@ local function DoVerify(autoKey)
             if o:IsA("TextLabel") or o:IsA("TextBox") then Tw(o,{TextTransparency=1},.2) end
         end
         task.wait(.35);KeyGui:Destroy()
+        local Lib = nil
         local libOk,libErr = pcall(function()
-            local libBody = pcall(FS.readfile, "uilib.lua") and select(2, pcall(FS.readfile, "uilib.lua"))
-            if not libBody or #libBody == 0 then
-                libBody = HttpReq({Url=UILIB_URL,Method="GET"}).Body
+            -- Try multiple paths to find uilib.lua (local execution vs loadstring have different working directories)
+            local libBody = nil
+            local paths = {"uilib.lua", "./uilib.lua", "workspace/uilib.lua", "scripts/uilib.lua"}
+            for _,path in ipairs(paths) do
+                local ok,content = pcall(FS.readfile, path)
+                if ok and content and #content > 1000 then
+                    libBody = content
+                    break
+                end
             end
-            loadstring(libBody)()
+            if not libBody or #libBody == 0 then
+                warn("[elocate] Local uilib.lua not found, falling back to remote...")
+                libBody = HttpReq({Url=UILIB_URL,Method="GET"}).Body
+            else
+                warn("[elocate] Loaded local uilib.lua")
+            end
+            -- Capture Library directly from return value (handles isolated loadstring environments)
+            Lib = loadstring(libBody)()
         end)
         if not libOk then warn("[elocate] lib error:",libErr) return end
-        local Lib = getgenv().Library
-        if not Lib then warn("[elocate] Library global missing") return end
+        if not Lib then 
+            -- Fallback: try getgenv() in case the library was set there
+            Lib = getgenv().Library
+            if not Lib then 
+                warn("[elocate] Library not returned from uilib and not in getgenv") 
+                return 
+            end
+        end
         local function FC(flag,dr,dg,db)
             local f=Lib.Flags[flag]
             if f and type(f)=="table" and f.Color then
@@ -2167,9 +2187,9 @@ local function DoVerify(autoKey)
         for _,plr2 in Players:GetPlayers() do _connectHitNotif(plr2) end
         Lib:Connect(Players.PlayerAdded,_connectHitNotif)
         task.spawn(function()
-            while getgenv().Library do
+            while Lib and Lib.Flags do
                 task.wait(120)
-                pcall(function() if getgenv().Library then FS.writefile(DEFAULT_CFG,Lib:GetConfig()) end end)
+                pcall(function() if Lib and Lib.Flags then FS.writefile(DEFAULT_CFG,Lib:GetConfig()) end end)
             end
         end)
         Lib:OnUnload(function()
