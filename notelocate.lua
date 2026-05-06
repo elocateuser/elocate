@@ -128,18 +128,16 @@ local function DoVerify(autoKey)
         local libOk,libErr = pcall(function()
             print("[elocate] fetching UI library...")
             local libBody = HttpReq({Url=UILIB_URL,Method="GET"}).Body
-            Lib = loadstring(libBody)()
+            loadstring(libBody)()
+            Lib = getgenv().Library
         end)
         if not libOk then 
             print("[elocate] library load error: " .. tostring(libErr))
             return 
         end
         if not Lib then 
-            Lib = getgenv().Library
-            if not Lib then 
-                print("[elocate] Library is nil after loading")
-                return 
-            end
+            print("[elocate] Library failed to initialize")
+            return 
         end
         local function FC(flag,dr,dg,db)
             local f=Lib.Flags[flag]
