@@ -348,11 +348,13 @@ local Library do
                 [Property] = Visibility and OldTransparency or 1
             }, true)
 
-            NewTween.Tween.Completed:Once(function()
-                if not Visibility then 
-                    Item[Property] = OldTransparency
-                end
-            end)
+            if NewTween and NewTween.Tween then
+                NewTween.Tween.Completed:Once(function()
+                    if not Visibility then 
+                        Item[Property] = OldTransparency
+                    end
+                end)
+            end
 
             return NewTween
         end
@@ -2199,8 +2201,13 @@ local Library do
                 Debounce = true 
 
                 if Dropdown.IsOpen then 
-                    Items["OptionHolder"].Instance.Visible = true
                     Items["OptionHolder"].Instance.Parent = Library.Holder.Instance
+                    -- set position before making visible to prevent flicker
+                    Items["OptionHolder"].Instance.Position = UDim2New(0, Items["RealDropdown"].Instance.AbsolutePosition.X, 0, Items["RealDropdown"].Instance.AbsolutePosition.Y + Items["RealDropdown"].Instance.AbsoluteSize.Y + 5)
+                    Items["OptionHolder"].Instance.Size = UDim2New(0, Items["RealDropdown"].Instance.AbsoluteSize.X, 0, 0)
+                    task.defer(function()
+                        Items["OptionHolder"].Instance.Visible = true
+                    end)
                     Items["Icon"]:Tween(nil, {Rotation = -90})
                     
                     RenderStepped = Library:Connect(RunService.RenderStepped, function()
@@ -2232,15 +2239,23 @@ local Library do
 
                 NewTween = Tween:FadeItem(Items["OptionHolder"].Instance, "BackgroundTransparency", not Dropdown.IsOpen, Library.FadeSpeed)
                 
-                NewTween.Tween.Completed:Once(function()
+                if NewTween and NewTween.Tween then
+                    NewTween.Tween.Completed:Once(function()
+                        Items["OptionHolder"].Instance.Visible = Dropdown.IsOpen
+                        task.delay(0.2, function()
+                            Items["OptionHolder"].Instance.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                        end)
+                        task.delay(Library.FadeSpeed, function()
+                            Debounce = false
+                        end)
+                    end)
+                else
                     Items["OptionHolder"].Instance.Visible = Dropdown.IsOpen
                     task.delay(0.2, function()
                         Items["OptionHolder"].Instance.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
                     end)
-                    task.delay(Library.FadeSpeed, function()
-                        Debounce = false
-                    end)
-                end)
+                    Debounce = false
+                end
             end
 
             function Dropdown:SetVisibility(Bool)
@@ -4651,8 +4666,9 @@ local Library do
                 AnchorPoint = Vector2New(0, 0.5),
                 Position = UDim2New(0, 12, 0.5, 55),
                 BorderColor3 = FromRGB(12, 12, 12),
-                Size = UDim2New(0, 116, 0, 0),
+                Size = UDim2New(0, 180, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
+                ClipsDescendants = true,
                 BorderSizePixel = 2,
                 BackgroundColor3 = FromRGB(14, 17, 15)
             })  Items["KeybindList"]:AddToTheme({BackgroundColor3 = "Background", BorderColor3 = "Border"})
@@ -4732,9 +4748,12 @@ local Library do
                 BorderColor3 = FromRGB(0, 0, 0),
                 Text = "" ..Key .." - " ..Name .. " ("..Mode..")",
                 BackgroundTransparency = 1,
-                Size = UDim2New(0, 0, 0, 15),
+                Size = UDim2New(1, 0, 0, 15),
                 BorderSizePixel = 0,
-                AutomaticSize = Enum.AutomaticSize.X,
+                AutomaticSize = Enum.AutomaticSize.None,
+                TextWrapped = true,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
                 TextTransparency = 1,
                 Visible = false,
                 TextSize = 9,
@@ -4752,9 +4771,14 @@ local Library do
                     NewKey.Instance.Visible = true
                     NewKey:Tween(nil, {TextTransparency = 0})
                 else
-                    NewKey:Tween(nil, {TextTransparency = 1}).Tween.Completed:Connect(function()
+                    local t = NewKey:Tween(nil, {TextTransparency = 1})
+                    if t and t.Tween then
+                        t.Tween.Completed:Connect(function()
+                            NewKey.Instance.Visible = false
+                        end)
+                    else
                         NewKey.Instance.Visible = false
-                    end)
+                    end
                 end
             end
 
